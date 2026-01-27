@@ -22,6 +22,9 @@ class Settings:
     log_channel_id: int
     ask_ai_channel_id: int
     fun_channel_id: int
+    event_channel_id: int
+    google_calendar_id: str
+    google_service_account_path: str
     owm_api_key: str
     owm_zip_code: str
     tavily_api_key: str
@@ -35,6 +38,9 @@ class Settings:
             log_channel_id=int(_require("LOG_CHANNEL_ID")),
             ask_ai_channel_id=int(_require("ASK_AI_CHANNEL_ID")),
             fun_channel_id=int(_require("FUN_CHANNEL_ID")),
+            event_channel_id=int(_require("EVENT_CHANNEL_ID")),
+            google_calendar_id=_require("GOOGLE_CALENDAR_ID"),
+            google_service_account_path=_require("GOOGLE_SERVICE_ACCOUNT_PATH"),
             owm_api_key=_require("OWM_API_KEY"),
             owm_zip_code=_require("OWM_ZIP_CODE"),
             tavily_api_key=_require("TAVILY_API_KEY"),

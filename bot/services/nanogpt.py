@@ -1,14 +1,37 @@
 from __future__ import annotations
 
+import json
 import logging
 import random
+from datetime import datetime
 
 import aiohttp
+from zoneinfo import ZoneInfo
 
 log = logging.getLogger("milo.nanogpt")
 
 NANOGPT_URL = "https://nano-gpt.com/api/v1/chat/completions"
 NANOGPT_IMAGE_URL = "https://nano-gpt.com/v1/images/generations"
+
+EVENT_EXTRACTION_PROMPT = """\
+Current date/time: {now}
+
+Extract event details. Return ONLY valid JSON:
+{{
+  "title": "event name",
+  "start_date": "YYYY-MM-DD",
+  "start_time": "HH:MM (24h) or null",
+  "end_date": "YYYY-MM-DD or null",
+  "end_time": "HH:MM (24h) or null",
+  "location": "string or null",
+  "description": "string or null"
+}}
+
+Rules:
+- Resolve relative dates ("Saturday", "next Friday") to actual dates
+- If year missing, assume current or next occurrence
+- If no end time, set null
+- Return ONLY JSON"""
 
 COLORING_BOOK_PREFIX = (
     "Black and white line drawing, coloring book page. "
@@ -95,6 +118,96 @@ class NanoGPTService:
             resp.raise_for_status()
             data = await resp.json()
             return data["choices"][0]["message"]["content"].strip()
+
+    def _event_prompt(self) -> str:
+        now = datetime.now(ZoneInfo("America/New_York")).strftime("%A, %B %d, %Y %I:%M %p %Z")
+        return EVENT_EXTRACTION_PROMPT.format(now=now)
+
+    def _parse_event_json(self, text: str) -> dict | None:
+        """Extract JSON from a response that may include markdown fences."""
+        text = text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[-1].rsplit("```", 1)[0]
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            log.error("Failed to parse event JSON: %s", text)
+            return None
+
+    async def extract_event_from_text(self, session: aiohttp.ClientSession, text: str) -> dict | None:
+        """Use AI to extract event details from plain text."""
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": "chatgpt-4o-latest",
+            "messages": [
+                {"role": "system", "content": self._event_prompt()},
+                {"role": "user", "content": text},
+            ],
+        }
+        async with session.post(NANOGPT_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+            content = data["choices"][0]["message"]["content"].strip()
+            return self._parse_event_json(content)
+
+    async def extract_event_from_image(self, session: aiohttp.ClientSession, image_url: str) -> dict | None:
+        """Use AI vision to extract event details from an image URL."""
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": "chatgpt-4o-latest",
+            "messages": [
+                {"role": "system", "content": self._event_prompt()},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url", "image_url": {"url": image_url}},
+                        {"type": "text", "text": "Extract event details from this image."},
+                    ],
+                },
+            ],
+        }
+        async with session.post(NANOGPT_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+            content = data["choices"][0]["message"]["content"].strip()
+            return self._parse_event_json(content)
+
+    async def enrich_location(self, session: aiohttp.ClientSession, location: str, search_context: str) -> dict | None:
+        """Given a location string and web search results, return structured place info."""
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": "chatgpt-4o-latest",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are given a location reference from a calendar event and web search results about it. "
+                        "Return ONLY valid JSON with the enriched location info:\n"
+                        '{"name": "business/place name", "address": "full street address, city, state zip", '
+                        '"maps_query": "name + address for Google Maps search"}\n'
+                        "If the search results don't help identify the place, return null."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": f"Location from event: {location}\n\nSearch results:\n{search_context}",
+                },
+            ],
+        }
+        async with session.post(NANOGPT_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+            content = data["choices"][0]["message"]["content"].strip()
+            return self._parse_event_json(content)
 
     async def get_quote(self, session: aiohttp.ClientSession) -> str:
         try:
