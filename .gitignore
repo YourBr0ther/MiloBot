@@ -1,5 +1,6 @@
 # Environment
 .env
+service-account.json
 
 # Python
 __pycache__/
