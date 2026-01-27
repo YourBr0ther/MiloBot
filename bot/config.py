@@ -20,8 +20,11 @@ class Settings:
     discord_token: str
     briefing_channel_id: int
     log_channel_id: int
+    ask_ai_channel_id: int
+    fun_channel_id: int
     owm_api_key: str
     owm_zip_code: str
+    tavily_api_key: str
     nanogpt_api_key: str
 
     @classmethod
@@ -30,7 +33,10 @@ class Settings:
             discord_token=_require("DISCORD_TOKEN"),
             briefing_channel_id=int(_require("BRIEFING_CHANNEL_ID")),
             log_channel_id=int(_require("LOG_CHANNEL_ID")),
+            ask_ai_channel_id=int(_require("ASK_AI_CHANNEL_ID")),
+            fun_channel_id=int(_require("FUN_CHANNEL_ID")),
             owm_api_key=_require("OWM_API_KEY"),
             owm_zip_code=_require("OWM_ZIP_CODE"),
+            tavily_api_key=_require("TAVILY_API_KEY"),
             nanogpt_api_key=_require("NANOGPT_API_KEY"),
         )
