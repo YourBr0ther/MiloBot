@@ -1,0 +1,9 @@
+services:
+  milo:
+    build: .
+    env_file: .env
+    environment:
+      - TZ=US/Eastern
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
