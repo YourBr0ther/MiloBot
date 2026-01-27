@@ -29,6 +29,13 @@ class Settings:
     owm_zip_code: str
     tavily_api_key: str
     nanogpt_api_key: str
+    requests_channel_id: int
+    overseerr_url: str
+    overseerr_api_key: str
+    plex_machine_id: str
+    plex_token: str
+    plex_url: str
+    patch_notes_channel_id: int
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -45,4 +52,11 @@ class Settings:
             owm_zip_code=_require("OWM_ZIP_CODE"),
             tavily_api_key=_require("TAVILY_API_KEY"),
             nanogpt_api_key=_require("NANOGPT_API_KEY"),
+            requests_channel_id=int(_require("REQUESTS_CHANNEL_ID")),
+            overseerr_url=_require("OVERSEERR_URL"),
+            overseerr_api_key=_require("OVERSEERR_API_KEY"),
+            plex_machine_id=_require("PLEX_MACHINE_ID"),
+            plex_token=_require("PLEX_TOKEN"),
+            plex_url=_require("PLEX_URL"),
+            patch_notes_channel_id=int(_require("PATCH_NOTES_CHANNEL_ID")),
         )
