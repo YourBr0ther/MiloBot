@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+from pathlib import Path
 
 import aiohttp
 import discord
@@ -12,6 +14,7 @@ from bot.services.overseerr import OverseerrService
 log = logging.getLogger("milo.media_request")
 
 MEDIA_STATUS_AVAILABLE = 5
+PENDING_FILE = Path("data/pending_media_requests.json")
 
 
 @dataclass
@@ -21,6 +24,26 @@ class PendingRequest:
     user_id: int
     channel_id: int
     media_title: str
+
+
+def _load_pending() -> dict[int, PendingRequest]:
+    if not PENDING_FILE.exists():
+        return {}
+    try:
+        data = json.loads(PENDING_FILE.read_text())
+        return {
+            int(k): PendingRequest(**v)
+            for k, v in data.items()
+        }
+    except (json.JSONDecodeError, OSError, TypeError):
+        log.exception("Failed to load pending media requests")
+        return {}
+
+
+def _save_pending(pending: dict[int, PendingRequest]) -> None:
+    PENDING_FILE.parent.mkdir(parents=True, exist_ok=True)
+    data = {str(k): asdict(v) for k, v in pending.items()}
+    PENDING_FILE.write_text(json.dumps(data, indent=2))
 
 
 def _parse_result(item: dict) -> dict:
@@ -115,6 +138,7 @@ class ConfirmView(discord.ui.View):
                 channel_id=interaction.channel_id,
                 media_title=item["display_title"],
             )
+            _save_pending(self.cog.pending)
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red, emoji="\u274c")
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
@@ -131,7 +155,9 @@ class MediaRequest(commands.Cog):
         self.plex_machine_id = settings.plex_machine_id
         self.plex_url = settings.plex_url.rstrip("/")
         self.plex_token = settings.plex_token
-        self.pending: dict[int, PendingRequest] = {}
+        self.pending: dict[int, PendingRequest] = _load_pending()
+        if self.pending:
+            log.info("Loaded %d pending media requests from disk", len(self.pending))
         self.poll_availability.start()
 
     def cog_unload(self) -> None:
@@ -248,6 +274,8 @@ class MediaRequest(commands.Cog):
 
         for req_id in resolved:
             self.pending.pop(req_id, None)
+        if resolved:
+            _save_pending(self.pending)
 
     @poll_availability.before_loop
     async def before_poll(self) -> None:

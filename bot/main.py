@@ -26,7 +26,11 @@ def create_bot(settings: Settings) -> commands.Bot:
     async def on_ready() -> None:
         setup_logging(bot, settings.log_channel_id)
         log.info("Milo is online! Logged in as %s (ID: %s)", bot.user, bot.user.id)
+
+    async def _setup_hook() -> None:
         await load_cogs(bot)
+
+    bot.setup_hook = _setup_hook
 
     return bot
 

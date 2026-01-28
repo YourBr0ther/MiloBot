@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import time
+from datetime import date, datetime, time
 
 import aiohttp
 import discord
@@ -14,13 +14,11 @@ from bot.utils.embeds import build_briefing_embed
 
 log = logging.getLogger("milo.briefing")
 
-# 7:00 AM Eastern = 12:00 UTC (EST) or 11:00 UTC (EDT)
-# discord.ext.tasks supports timezone-aware times via the `time` kwarg.
-# We specify both so the loop fires at 7 AM ET year-round.
+# 6:00 AM Eastern - discord.ext.tasks handles DST automatically with tzinfo
 import zoneinfo
 
 EASTERN = zoneinfo.ZoneInfo("America/New_York")
-BRIEFING_TIME = time(hour=7, minute=0, tzinfo=EASTERN)
+BRIEFING_TIME = time(hour=6, minute=0, tzinfo=EASTERN)
 
 
 class MorningBriefing(commands.Cog):
@@ -30,6 +28,7 @@ class MorningBriefing(commands.Cog):
         self.channel_id = settings.briefing_channel_id
         self.weather_svc = WeatherService(settings.owm_api_key, settings.owm_zip_code)
         self.quote_svc = NanoGPTService(settings.nanogpt_api_key)
+        self._last_briefing_date: date | None = None  # Idempotency guard
         self.daily_briefing.start()
 
     async def cog_unload(self) -> None:
@@ -55,6 +54,11 @@ class MorningBriefing(commands.Cog):
 
     @tasks.loop(time=BRIEFING_TIME)
     async def daily_briefing(self) -> None:
+        today = datetime.now(EASTERN).date()
+        if self._last_briefing_date == today:
+            log.warning("Briefing already sent today, skipping duplicate")
+            return
+
         channel = self.bot.get_channel(self.channel_id)
         if channel is None:
             log.error("Briefing channel %s not found", self.channel_id)
@@ -63,6 +67,7 @@ class MorningBriefing(commands.Cog):
         log.info("Sending daily morning briefing")
         embed = await self._build_briefing()
         await channel.send(embed=embed)
+        self._last_briefing_date = today
 
     @daily_briefing.before_loop
     async def before_daily_briefing(self) -> None:

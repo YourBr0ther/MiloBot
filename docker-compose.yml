@@ -8,3 +8,4 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./service-account.json:/app/service-account.json:ro
+      - ./data:/app/data

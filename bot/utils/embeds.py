@@ -56,3 +56,53 @@ def build_briefing_embed(
 
     embed.set_footer(text="Have a great day!")
     return embed
+
+
+def build_birthday_embed(name: str, days_until: int) -> discord.Embed:
+    """Build an embed for birthday reminders."""
+    if days_until == 0:
+        title = f"Happy Birthday, {name}!"
+        description = f"Today is {name}'s birthday!"
+    else:
+        date_text = _get_upcoming_date_text(days_until)
+        title = "Birthday Reminder"
+        description = f"Heads up! {name}'s birthday is in {days_until} days ({date_text})"
+
+    embed = discord.Embed(
+        title=title,
+        description=description,
+        color=discord.Color.magenta(),
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.set_footer(text="Birthday Reminder")
+    return embed
+
+
+def build_anniversary_embed(name: str, days_until: int) -> discord.Embed:
+    """Build an embed for anniversary reminders."""
+    if days_until == 0:
+        title = "Happy Anniversary!"
+        description = f"Today is the {name} anniversary!"
+    else:
+        date_text = _get_upcoming_date_text(days_until)
+        title = "Anniversary Reminder"
+        description = f"Heads up! The {name} anniversary is in {days_until} days ({date_text})"
+
+    embed = discord.Embed(
+        title=title,
+        description=description,
+        color=discord.Color.red(),
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.set_footer(text="Anniversary Reminder")
+    return embed
+
+
+def _get_upcoming_date_text(days_until: int) -> str:
+    """Get a formatted date string for an upcoming date."""
+    from datetime import timedelta
+    import zoneinfo
+
+    eastern = zoneinfo.ZoneInfo("America/New_York")
+    target_date = datetime.now(eastern).date() + timedelta(days=days_until)
+    return target_date.strftime("%B %-d")

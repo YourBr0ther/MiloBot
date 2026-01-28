@@ -32,31 +32,38 @@ class DiscordChannelHandler(logging.Handler):
 def setup_logging(bot: discord.Client | None = None, channel_id: int | None = None) -> logging.Logger:
     logger = logging.getLogger("milo")
     logger.setLevel(logging.DEBUG)
+    logger.propagate = False  # Prevent duplicate logs to root logger
 
     formatter = logging.Formatter(
         "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-    # Console
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    console.setFormatter(formatter)
-    logger.addHandler(console)
+    # Only add console/file handlers once (check if already configured)
+    if not logger.handlers:
+        # Console
+        console = logging.StreamHandler()
+        console.setLevel(logging.INFO)
+        console.setFormatter(formatter)
+        logger.addHandler(console)
 
-    # File
-    os.makedirs("logs", exist_ok=True)
-    file_handler = RotatingFileHandler(
-        "logs/milo.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8"
-    )
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+        # File
+        os.makedirs("logs", exist_ok=True)
+        file_handler = RotatingFileHandler(
+            "logs/milo.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8"
+        )
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
-    # Discord channel
+    # Discord channel (add if provided and not already present)
     if bot and channel_id:
-        discord_handler = DiscordChannelHandler(bot, channel_id)
-        discord_handler.setFormatter(formatter)
-        logger.addHandler(discord_handler)
+        has_discord_handler = any(
+            isinstance(h, DiscordChannelHandler) for h in logger.handlers
+        )
+        if not has_discord_handler:
+            discord_handler = DiscordChannelHandler(bot, channel_id)
+            discord_handler.setFormatter(formatter)
+            logger.addHandler(discord_handler)
 
     return logger

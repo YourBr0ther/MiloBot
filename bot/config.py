@@ -36,6 +36,11 @@ class Settings:
     plex_token: str
     plex_url: str
     patch_notes_channel_id: int
+    wow_channel_id: int
+    nintendo_channel_id: int
+    shopping_list_channel_id: int
+    birthday_reminder_channel_id: int
+    birthday_commands_channel_id: int
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -59,4 +64,9 @@ class Settings:
             plex_token=_require("PLEX_TOKEN"),
             plex_url=_require("PLEX_URL"),
             patch_notes_channel_id=int(_require("PATCH_NOTES_CHANNEL_ID")),
+            wow_channel_id=int(_require("WOW_CHANNEL_ID")),
+            nintendo_channel_id=int(_require("NINTENDO_CHANNEL_ID")),
+            shopping_list_channel_id=int(_require("SHOPPING_LIST_CHANNEL_ID")),
+            birthday_reminder_channel_id=int(_require("BIRTHDAY_REMINDER_CHANNEL_ID")),
+            birthday_commands_channel_id=int(_require("BIRTHDAY_COMMANDS_CHANNEL_ID")),
         )
