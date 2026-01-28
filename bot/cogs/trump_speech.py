@@ -341,6 +341,10 @@ class TrumpSpeechWatcher(commands.Cog):
 
         return videos
 
+    def _role_mention(self) -> str:
+        role = discord.utils.get(self.bot.guilds[0].roles, name="Trump Speeches")
+        return role.mention if role else ""
+
     async def _process_video(
         self, channel: discord.abc.Messageable, video: dict
     ) -> None:
@@ -420,7 +424,8 @@ class TrumpSpeechWatcher(commands.Cog):
             embed.add_field(name="Duration", value=f"{mins}m {secs}s", inline=True)
         embed.set_footer(text="Trump Speech Summary")
 
-        await channel.send(embed=embed)
+        mention = self._role_mention()
+        await channel.send(content=mention, embed=embed)
         log.info("Posted Trump speech summary: %s", title)
 
         # Save record

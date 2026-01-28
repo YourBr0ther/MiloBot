@@ -133,6 +133,10 @@ class SCYouTubeWatcher(commands.Cog):
 
         return videos
 
+    def _role_mention(self) -> str:
+        role = discord.utils.get(self.bot.guilds[0].roles, name="SC YouTube")
+        return role.mention if role else ""
+
     async def _post_video(
         self, channel: discord.abc.Messageable, video: dict
     ) -> None:
@@ -152,7 +156,8 @@ class SCYouTubeWatcher(commands.Cog):
 
         embed.set_footer(text="Roberts Space Industries")
 
-        await channel.send(embed=embed)
+        mention = self._role_mention()
+        await channel.send(content=mention, embed=embed)
         log.info("Posted RSI YouTube video: %s", title)
 
     @check_videos.before_loop

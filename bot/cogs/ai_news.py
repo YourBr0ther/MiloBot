@@ -331,6 +331,10 @@ class AINews(commands.Cog):
 
     # -- Posting -----------------------------------------------------------
 
+    def _role_mention(self) -> str:
+        role = discord.utils.get(self.bot.guilds[0].roles, name="AI News")
+        return role.mention if role else ""
+
     async def _post_article(
         self,
         channel: discord.abc.Messageable,
@@ -346,7 +350,8 @@ class AINews(commands.Cog):
             color=config["color"],
         )
         embed.set_footer(text=config["footer"])
-        await channel.send(embed=embed)
+        mention = self._role_mention()
+        await channel.send(content=mention, embed=embed)
         log.info("Posted AI news: [%s] %s", provider, article["title"])
 
     # -- Test command ------------------------------------------------------

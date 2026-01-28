@@ -89,6 +89,10 @@ class NintendoWatcher(commands.Cog):
         except Exception:
             log.exception("Error checking Nintendo Direct posts")
 
+    def _role_mention(self) -> str:
+        role = discord.utils.get(self.bot.guilds[0].roles, name="Nintendo Direct")
+        return role.mention if role else ""
+
     async def _verify_and_alert(
         self,
         session: aiohttp.ClientSession,
@@ -129,7 +133,8 @@ class NintendoWatcher(commands.Cog):
         embed.add_field(name="Comments", value=str(num_comments), inline=True)
         embed.set_footer(text="r/NintendoSwitch + r/nintendo")
 
-        await channel.send(embed=embed)
+        mention = self._role_mention()
+        await channel.send(content=mention, embed=embed)
         log.info("Nintendo Direct alert sent: %s", title)
 
     @check_nintendo_direct.before_loop

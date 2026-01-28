@@ -81,6 +81,10 @@ class PatchNotes(commands.Cog):
         except Exception:
             log.exception("Error checking patch notes")
 
+    def _role_mention(self) -> str:
+        role = discord.utils.get(self.bot.guilds[0].roles, name="SC Patch Notes")
+        return role.mention if role else ""
+
     async def _post_summary(self, channel: discord.abc.Messageable, thread: dict) -> None:
         thread_id = thread["id"]
         slug = thread["slug"]
@@ -111,7 +115,8 @@ class PatchNotes(commands.Cog):
         )
         embed.set_footer(text="Star Citizen Patch Notes")
 
-        await channel.send(embed=embed)
+        mention = self._role_mention()
+        await channel.send(content=mention, embed=embed)
 
     @commands.command(name="testpatch")
     @commands.is_owner()

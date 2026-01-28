@@ -111,6 +111,10 @@ class RSIStatus(commands.Cog):
         except Exception:
             log.exception("Error checking RSI status")
 
+    def _role_mention(self) -> str:
+        role = discord.utils.get(self.bot.guilds[0].roles, name="RSI Status")
+        return role.mention if role else ""
+
     async def _post_update(self, channel: discord.abc.Messageable, item: dict) -> None:
         status_label, color = _status_from_title(item["title"])
 
@@ -130,7 +134,8 @@ class RSIStatus(commands.Cog):
             embed.add_field(name="Updated", value=item["pub_date"], inline=True)
         embed.set_footer(text="RSI Service Status")
 
-        await channel.send(embed=embed)
+        mention = self._role_mention()
+        await channel.send(content=mention, embed=embed)
 
     @check_status.before_loop
     async def before_check(self) -> None:

@@ -118,6 +118,10 @@ class WoWPatchNotes(commands.Cog):
         except Exception:
             log.exception("Error checking WoW patch notes")
 
+    def _role_mention(self) -> str:
+        role = discord.utils.get(self.bot.guilds[0].roles, name="WoW Patch Notes")
+        return role.mention if role else ""
+
     async def _post_summary(self, channel: discord.abc.Messageable, item: dict) -> bool:
         """Post a summary of patch notes. Returns True on success."""
         link = item["link"]
@@ -148,7 +152,8 @@ class WoWPatchNotes(commands.Cog):
         )
         embed.set_footer(text="World of Warcraft Patch Notes")
 
-        await channel.send(embed=embed)
+        mention = self._role_mention()
+        await channel.send(content=mention, embed=embed)
         return True
 
     async def _fetch_article(self, url: str) -> str | None:
