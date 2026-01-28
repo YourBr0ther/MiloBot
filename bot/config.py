@@ -41,6 +41,7 @@ class Settings:
     shopping_list_channel_id: int
     birthday_reminder_channel_id: int
     birthday_commands_channel_id: int
+    trump_speech_channel_id: int
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -69,4 +70,5 @@ class Settings:
             shopping_list_channel_id=int(_require("SHOPPING_LIST_CHANNEL_ID")),
             birthday_reminder_channel_id=int(_require("BIRTHDAY_REMINDER_CHANNEL_ID")),
             birthday_commands_channel_id=int(_require("BIRTHDAY_COMMANDS_CHANNEL_ID")),
+            trump_speech_channel_id=int(_require("TRUMP_SPEECH_CHANNEL_ID")),
         )
