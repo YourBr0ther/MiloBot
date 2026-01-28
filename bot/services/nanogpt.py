@@ -12,6 +12,7 @@ log = logging.getLogger("milo.nanogpt")
 
 NANOGPT_URL = "https://nano-gpt.com/api/v1/chat/completions"
 NANOGPT_IMAGE_URL = "https://nano-gpt.com/v1/images/generations"
+NANOGPT_BALANCE_URL = "https://nano-gpt.com/api/check-balance"
 
 EVENT_EXTRACTION_PROMPT = """\
 Current date/time: {now}
@@ -64,6 +65,15 @@ PROMPT = (
 class NanoGPTService:
     def __init__(self, api_key: str) -> None:
         self._api_key = api_key
+
+    async def check_balance(self, session: aiohttp.ClientSession) -> dict:
+        """Return account balance info from NanoGPT."""
+        headers = {"x-api-key": self._api_key}
+        async with session.post(
+            NANOGPT_BALANCE_URL, headers=headers, timeout=aiohttp.ClientTimeout(total=15)
+        ) as resp:
+            resp.raise_for_status()
+            return await resp.json()
 
     async def generate_coloring_page(
         self, session: aiohttp.ClientSession, subject: str, seed: int | None = None
