@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import logging
+import zoneinfo
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
 import aiohttp
+
+EASTERN = zoneinfo.ZoneInfo("America/New_York")
 
 log = logging.getLogger("milo.weather")
 
@@ -64,7 +67,7 @@ class WeatherService:
             data = await resp.json()
 
         city = data["city"]["name"]
-        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today_eastern = datetime.now(EASTERN).date()
 
         temps: list[float] = []
         precip_chances: list[float] = []
@@ -73,8 +76,9 @@ class WeatherService:
         hourly: list[HourlyForecast] = []
 
         for entry in data["list"]:
-            dt_txt: str = entry["dt_txt"]
-            if not dt_txt.startswith(today_str):
+            dt_utc = datetime.fromisoformat(entry["dt_txt"]).replace(tzinfo=timezone.utc)
+            dt_local = dt_utc.astimezone(EASTERN)
+            if dt_local.date() != today_eastern:
                 continue
 
             temp = entry["main"]["temp"]
@@ -86,9 +90,8 @@ class WeatherService:
             descriptions.append(desc)
             icons.append(icon)
 
-            dt = datetime.fromisoformat(dt_txt)
             hourly.append(HourlyForecast(
-                time=dt.strftime("%-I %p"),
+                time=dt_local.strftime("%-I %p"),
                 temp_f=round(temp, 1),
                 description=desc,
                 icon=icon,
