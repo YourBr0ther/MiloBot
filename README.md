@@ -41,6 +41,7 @@ Built with [discord.py](https://discordpy.readthedocs.io/) &bull; Deployed with 
 | **WoW Patch Notes** | Watches Wowhead RSS for World of Warcraft news | Every 10 min |
 | **Nintendo Direct** | Scans Reddit for Nintendo Direct announcements with LLM verification | Every 5 min |
 | **RSI Service Status** | Tracks Star Citizen service incidents via RSS with color-coded status updates | Every 5 min |
+| **RSI YouTube** | Monitors the Roberts Space Industries YouTube channel for new video uploads | Every 10 min |
 | **Trump Speech Summaries** | Monitors YouTube feeds (White House, C-SPAN, Fox News), extracts captions, and posts AI summaries with deduplication | Every 30 min |
 
 ### Admin
@@ -104,7 +105,7 @@ All variables are defined in [`.env.example`](.env.example). Here's a quick refe
 
 | Group | Variables |
 |:------|:---------|
-| **Discord** | `DISCORD_TOKEN`, plus channel IDs for each feature (`BRIEFING_CHANNEL_ID`, `LOG_CHANNEL_ID`, `ASK_AI_CHANNEL_ID`, `FUN_CHANNEL_ID`, `EVENT_CHANNEL_ID`, `REQUESTS_CHANNEL_ID`, `PATCH_NOTES_CHANNEL_ID`, `WOW_CHANNEL_ID`, `NINTENDO_CHANNEL_ID`, `SHOPPING_LIST_CHANNEL_ID`, `BIRTHDAY_REMINDER_CHANNEL_ID`, `BIRTHDAY_COMMANDS_CHANNEL_ID`, `TRUMP_SPEECH_CHANNEL_ID`) |
+| **Discord** | `DISCORD_TOKEN`, plus channel IDs for each feature (`BRIEFING_CHANNEL_ID`, `LOG_CHANNEL_ID`, `ASK_AI_CHANNEL_ID`, `FUN_CHANNEL_ID`, `EVENT_CHANNEL_ID`, `REQUESTS_CHANNEL_ID`, `PATCH_NOTES_CHANNEL_ID`, `WOW_CHANNEL_ID`, `NINTENDO_CHANNEL_ID`, `SHOPPING_LIST_CHANNEL_ID`, `BIRTHDAY_REMINDER_CHANNEL_ID`, `BIRTHDAY_COMMANDS_CHANNEL_ID`, `TRUMP_SPEECH_CHANNEL_ID`, `SC_YOUTUBE_CHANNEL_ID`) |
 | **Google Calendar** | `GOOGLE_CALENDAR_ID`, `GOOGLE_SERVICE_ACCOUNT_PATH` |
 | **Weather** | `OWM_API_KEY`, `OWM_ZIP_CODE` |
 | **AI / Search** | `NANOGPT_API_KEY`, `TAVILY_API_KEY` |

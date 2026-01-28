@@ -37,6 +37,7 @@ class PatchNotes(commands.Cog):
         self.spectrum = SpectrumService()
         self.nanogpt = NanoGPTService(settings.nanogpt_api_key)
         self.seen_thread_ids: set[str] = set()
+        self.seen_subjects: set[str] = set()
         self._first_run = True
         self.check_patch_notes.start()
 
@@ -55,6 +56,7 @@ class PatchNotes(commands.Cog):
             # On first run, seed the seen set so we don't spam old posts.
             if self._first_run:
                 self.seen_thread_ids = {t["id"] for t in threads}
+                self.seen_subjects = {t["subject"] for t in threads}
                 self._first_run = False
                 log.info("Patch notes: seeded %d existing thread IDs", len(self.seen_thread_ids))
                 return
@@ -70,6 +72,10 @@ class PatchNotes(commands.Cog):
 
             for thread in new_threads:
                 self.seen_thread_ids.add(thread["id"])
+                if thread["subject"] in self.seen_subjects:
+                    log.info("Skipping duplicate subject: %s", thread["subject"])
+                    continue
+                self.seen_subjects.add(thread["subject"])
                 await self._post_summary(channel, thread)
 
         except Exception:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from xml.etree import ElementTree
 
 import aiohttp
@@ -12,6 +13,17 @@ log = logging.getLogger("milo.rsi_status")
 RSS_URL = "https://status.robertsspaceindustries.com/index.xml"
 
 
+def _strip_html(text: str) -> str:
+    """Remove HTML tags and comments, collapse whitespace."""
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"</p>", "\n", text, flags=re.IGNORECASE)
+    text = re.sub(r"<[^>]+>", "", text)
+    # Collapse runs of blank lines
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 def _parse_rss(xml_text: str) -> list[dict]:
     """Parse the RSS feed and return items newest-first."""
     root = ElementTree.fromstring(xml_text)
@@ -21,13 +33,13 @@ def _parse_rss(xml_text: str) -> list[dict]:
         link = item.findtext("link", "")
         guid = item.findtext("guid", "")
         pub_date = item.findtext("pubDate", "")
-        description = item.findtext("description", "")
+        description = _strip_html(item.findtext("description", ""))
         items.append({
             "title": title,
             "link": link,
             "guid": guid,
             "pub_date": pub_date,
-            "description": description.strip(),
+            "description": description,
         })
     return items
 
