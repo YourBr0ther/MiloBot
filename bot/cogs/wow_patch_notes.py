@@ -17,7 +17,9 @@ WOWHEAD_RSS = "https://www.wowhead.com/news/rss/all"
 PATCH_KEYWORDS = ("hotfix", "patch notes", "content update notes", "update notes")
 
 
-def _is_patch_article(title: str) -> bool:
+def _is_patch_article(title: str, category: str) -> bool:
+    if category.lower() != "live":
+        return False
     lower = title.lower()
     return any(kw in lower for kw in PATCH_KEYWORDS)
 
@@ -27,7 +29,8 @@ def _parse_rss(xml_text: str) -> list[dict]:
     items: list[dict] = []
     for item in root.iter("item"):
         title = item.findtext("title", "")
-        if not _is_patch_article(title):
+        category = item.findtext("category", "")
+        if not _is_patch_article(title, category):
             continue
         link = item.findtext("link", "")
         guid = item.findtext("guid", link)
