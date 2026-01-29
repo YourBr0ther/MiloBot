@@ -14,6 +14,8 @@ def build_briefing_embed(
     weather: DailyWeather | None = None,
     outfit: str | None = None,
     quote: str | None = None,
+    breakfast: str | None = None,
+    lunch: str | None = None,
 ) -> discord.Embed:
     embed = discord.Embed(
         title="Good Morning! Here's Your Daily Briefing",
@@ -50,6 +52,14 @@ def build_briefing_embed(
 
     if outfit:
         embed.add_field(name="Outfit Recommendation", value=outfit, inline=False)
+
+    if breakfast or lunch:
+        meal_lines = []
+        if breakfast:
+            meal_lines.append(f"**Breakfast:** {breakfast}")
+        if lunch:
+            meal_lines.append(f"**Lunch:** {lunch}")
+        embed.add_field(name="School Menu", value="\n".join(meal_lines), inline=False)
 
     if quote:
         embed.add_field(name="Quote of the Day", value=f"*{quote}*", inline=False)

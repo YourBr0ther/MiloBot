@@ -188,6 +188,53 @@ class NanoGPTService:
             content = data["choices"][0]["message"]["content"].strip()
             return self._parse_event_json(content)
 
+    async def extract_lunch_menu(
+        self, session: aiohttp.ClientSession, page_data_uris: list[str], month_hint: str
+    ) -> dict[str, str]:
+        """Extract a lunch menu from one or more page images. Returns {YYYY-MM-DD: description}."""
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
+        system_prompt = (
+            "You are extracting a school meal menu from a calendar-style image.\n"
+            f"Month/year hint (use the date printed on the menu if visible): {month_hint}\n\n"
+            "Return ONLY valid JSON mapping each school day to an object with breakfast and lunch:\n"
+            '{"YYYY-MM-DD": {"breakfast": "...", "lunch": "..."}, ...}\n\n'
+            "Rules:\n"
+            "- The FIRST item listed each day is the featured breakfast item\n"
+            "- Everything after that is lunch: entree choices, then sides/fruit\n"
+            "- Format breakfast as just the item name (e.g. \"Apple Cinnamon Toast\")\n"
+            "- Format lunch as: \"Entrees: <choices separated by ' or '>. Sides: <sides separated by ', '>\"\n"
+            "- Strip out all parenthetical numbers like (44) or (EM14) — those are allergen codes\n"
+            "- Skip the PBJ Sandwich line (it is a daily standing option, not a featured item)\n"
+            "- Skip days that are blank or have no menu (weekends, holidays, no-school days)\n"
+            "- Use the full date format YYYY-MM-DD\n"
+            "- Return ONLY the JSON object, no other text"
+        )
+        content_parts: list[dict] = []
+        for uri in page_data_uris:
+            content_parts.append({"type": "image_url", "image_url": {"url": uri}})
+        content_parts.append({"type": "text", "text": "Extract the lunch menu from these images."})
+
+        payload = {
+            "model": "chatgpt-4o-latest",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": content_parts},
+            ],
+        }
+        async with session.post(
+            NANOGPT_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=60)
+        ) as resp:
+            resp.raise_for_status()
+            data = await resp.json()
+            content = data["choices"][0]["message"]["content"].strip()
+            result = self._parse_event_json(content)
+            if result is None:
+                return {}
+            return {k: v for k, v in result.items() if isinstance(v, dict)}
+
     async def enrich_location(self, session: aiohttp.ClientSession, location: str, search_context: str) -> dict | None:
         """Given a location string and web search results, return structured place info."""
         headers = {

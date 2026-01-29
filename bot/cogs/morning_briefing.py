@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import date, datetime, time
+from pathlib import Path
 
 import aiohttp
 import discord
@@ -18,6 +20,7 @@ log = logging.getLogger("milo.briefing")
 import zoneinfo
 
 EASTERN = zoneinfo.ZoneInfo("America/New_York")
+LUNCH_DATA_PATH = Path("data/lunch_menu.json")
 BRIEFING_TIME = time(hour=6, minute=0, tzinfo=EASTERN)
 
 
@@ -33,6 +36,21 @@ class MorningBriefing(commands.Cog):
 
     async def cog_unload(self) -> None:
         self.daily_briefing.cancel()
+
+    def _get_today_meals(self) -> tuple[str | None, str | None]:
+        """Look up today's breakfast and lunch from the menu data file."""
+        if not LUNCH_DATA_PATH.exists():
+            return None, None
+        try:
+            data = json.loads(LUNCH_DATA_PATH.read_text())
+            today_str = datetime.now(EASTERN).strftime("%Y-%m-%d")
+            entry = data.get(today_str)
+            if entry and isinstance(entry, dict):
+                return entry.get("breakfast"), entry.get("lunch")
+            return None, None
+        except (json.JSONDecodeError, OSError):
+            log.exception("Failed to read lunch menu data")
+            return None, None
 
     async def _build_briefing(self) -> discord.Embed:
         weather: DailyWeather | None = None
@@ -50,7 +68,9 @@ class MorningBriefing(commands.Cog):
             # Quote (has its own fallback)
             quote = await self.quote_svc.get_quote(session)
 
-        return build_briefing_embed(weather=weather, outfit=outfit, quote=quote)
+        breakfast, lunch = self._get_today_meals()
+
+        return build_briefing_embed(weather=weather, outfit=outfit, quote=quote, breakfast=breakfast, lunch=lunch)
 
     @tasks.loop(time=BRIEFING_TIME)
     async def daily_briefing(self) -> None:
