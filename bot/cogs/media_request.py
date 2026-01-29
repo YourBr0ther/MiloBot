@@ -225,7 +225,7 @@ class MediaRequest(commands.Cog):
             rating_key = media_info.get("ratingKey") or media_info.get("ratingKey4k")
             if rating_key:
                 plex_url = (
-                    f"{self.plex_url}/web/index.html#!/server/{self.plex_token}"
+                    f"{self.plex_url}/web/index.html#!/server/{self.plex_machine_id}"
                     f"/details?key=/library/metadata/{rating_key}"
                 )
                 embed.add_field(name="Status", value=f"Already on Plex!\n[Open in Plex]({plex_url})", inline=False)
@@ -255,7 +255,7 @@ class MediaRequest(commands.Cog):
 
                         if rating_key:
                             plex_url = (
-                                f"{self.plex_url}/web/index.html#!/server/{self.plex_token}"
+                                f"{self.plex_url}/web/index.html#!/server/{self.plex_machine_id}"
                                 f"/details?key=/library/metadata/{rating_key}"
                             )
                             message = (

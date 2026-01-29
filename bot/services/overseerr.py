@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import urllib.parse
 
 import aiohttp
+from yarl import URL
 
 log = logging.getLogger("milo.overseerr")
 
@@ -14,9 +16,9 @@ class OverseerrService:
 
     async def search(self, session: aiohttp.ClientSession, query: str) -> list[dict]:
         """Search Overseerr for movies and TV shows."""
-        url = f"{self._base_url}/search"
-        params = {"query": query, "page": "1"}
-        async with session.get(url, headers=self._headers, params=params,
+        qs = urllib.parse.urlencode({"query": query, "page": "1"}, quote_via=urllib.parse.quote)
+        url = URL(f"{self._base_url}/search?{qs}", encoded=True)
+        async with session.get(url, headers=self._headers,
                                timeout=aiohttp.ClientTimeout(total=15)) as resp:
             resp.raise_for_status()
             data = await resp.json()
@@ -25,7 +27,9 @@ class OverseerrService:
     async def request_media(self, session: aiohttp.ClientSession, media_type: str, tmdb_id: int) -> dict:
         """Submit a media request to Overseerr."""
         url = f"{self._base_url}/request"
-        payload = {"mediaType": media_type, "mediaId": tmdb_id}
+        payload: dict = {"mediaType": media_type, "mediaId": tmdb_id}
+        if media_type == "tv":
+            payload["seasons"] = "all"
         async with session.post(url, headers=self._headers, json=payload,
                                 timeout=aiohttp.ClientTimeout(total=15)) as resp:
             resp.raise_for_status()
