@@ -244,6 +244,7 @@ class TrumpSpeechWatcher(commands.Cog):
         self.channel_id = settings.trump_speech_channel_id
         self.nanogpt = NanoGPTService(settings.nanogpt_api_key)
         self.seen_video_ids: set[str] = set()
+        self._duration_retries: dict[str, int] = {}
         self._first_run = True
         self.check_speeches.start()
 
@@ -354,11 +355,17 @@ class TrumpSpeechWatcher(commands.Cog):
 
         log.info("Processing potential Trump speech: %s", title)
 
-        # Check duration
+        # Check duration (retry up to 3 times across polling cycles)
         duration = await _get_video_duration(video_id)
         if duration is None:
-            log.warning("Could not get duration for %s, skipping", video_id)
-            self.seen_video_ids.add(video_id)
+            retries = self._duration_retries.get(video_id, 0) + 1
+            self._duration_retries[video_id] = retries
+            if retries >= 3:
+                log.warning("Could not get duration for %s after %d attempts, giving up", video_id, retries)
+                self.seen_video_ids.add(video_id)
+                self._duration_retries.pop(video_id, None)
+            else:
+                log.info("Could not get duration for %s (attempt %d/3), will retry", video_id, retries)
             return
 
         if duration < MIN_DURATION_SECONDS:
