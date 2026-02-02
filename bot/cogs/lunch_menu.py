@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -224,8 +225,17 @@ class LunchMenu(commands.Cog):
         today = datetime.now(EASTERN).date()
         month_hint = today.strftime("%B %Y")
 
-        async with aiohttp.ClientSession() as session:
-            return await self.nanogpt.extract_lunch_menu(session, page_uris, month_hint)
+        last_err: Exception | None = None
+        for attempt in range(2):
+            try:
+                async with aiohttp.ClientSession() as session:
+                    return await self.nanogpt.extract_lunch_menu(session, page_uris, month_hint)
+            except (asyncio.TimeoutError, aiohttp.ClientError) as exc:
+                last_err = exc
+                if attempt == 0:
+                    log.warning("Lunch menu extraction timed out, retrying after 5s...")
+                    await asyncio.sleep(5)
+        raise last_err
 
     # --- Admin reminder: upload next month's menu ---
 

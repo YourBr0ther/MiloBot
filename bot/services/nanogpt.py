@@ -225,7 +225,7 @@ class NanoGPTService:
             ],
         }
         async with session.post(
-            NANOGPT_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=60)
+            NANOGPT_URL, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=180)
         ) as resp:
             resp.raise_for_status()
             data = await resp.json()
