@@ -44,6 +44,7 @@ class Settings:
     trump_speech_channel_id: int
     sc_youtube_channel_id: int
     ai_news_channel_id: int
+    minecraft_news_channel_id: int
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -75,4 +76,5 @@ class Settings:
             trump_speech_channel_id=int(_require("TRUMP_SPEECH_CHANNEL_ID")),
             sc_youtube_channel_id=int(_require("SC_YOUTUBE_CHANNEL_ID")),
             ai_news_channel_id=int(_require("AI_NEWS_CHANNEL_ID")),
+            minecraft_news_channel_id=int(_require("MINECRAFT_NEWS_CHANNEL_ID")),
         )
