@@ -25,6 +25,9 @@ def create_bot(settings: Settings) -> commands.Bot:
     @bot.event
     async def on_ready() -> None:
         setup_logging(bot, settings.log_channel_id)
+        if bot.user is None:
+            log.error("Bot user is None in on_ready event")
+            return
         log.info("Milo is online! Logged in as %s (ID: %s)", bot.user, bot.user.id)
 
     async def _setup_hook() -> None:
