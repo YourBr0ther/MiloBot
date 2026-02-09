@@ -1,19 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from xml.etree import ElementTree
 
-import aiohttp
 import discord
 from discord.ext import commands, tasks
 
 log = logging.getLogger("milo.sc_youtube")
 
 RSI_CHANNEL_ID = "UCTeLqJq1mXUX5WWoNXLmOIA"
-YOUTUBE_RSS_URL = f"https://www.youtube.com/feeds/videos.xml?channel_id={RSI_CHANNEL_ID}"
 
 DATA_FILE = Path("data/sc_youtube.json")
 
@@ -89,46 +87,36 @@ class SCYouTubeWatcher(commands.Cog):
             log.exception("Error checking RSI YouTube videos")
 
     async def _fetch_videos(self) -> list[dict]:
-        """Fetch recent videos from the RSI YouTube channel via RSS."""
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                YOUTUBE_RSS_URL, timeout=aiohttp.ClientTimeout(total=15)
-            ) as resp:
-                resp.raise_for_status()
-                xml_text = await resp.text()
+        """Fetch recent videos from the RSI YouTube channel via yt-dlp."""
+        proc = await asyncio.create_subprocess_exec(
+            "yt-dlp",
+            "--flat-playlist",
+            "--print", "%(id)s\t%(title)s",
+            "--playlist-end", "15",
+            "--no-warnings",
+            f"https://www.youtube.com/channel/{RSI_CHANNEL_ID}/videos",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
 
-        root = ElementTree.fromstring(xml_text)
-        ns = {
-            "atom": "http://www.w3.org/2005/Atom",
-            "yt": "http://www.youtube.com/xml/schemas/2015",
-        }
+        if proc.returncode != 0:
+            log.error("yt-dlp failed (rc=%d): %s", proc.returncode, stderr.decode()[:200])
+            return []
 
-        cutoff = datetime.now().astimezone() - timedelta(days=7)
+        now = datetime.now(timezone.utc)
+        now_iso = now.isoformat()
         videos = []
-        for entry in root.findall("atom:entry", ns):
-            video_id_el = entry.find("yt:videoId", ns)
-            title_el = entry.find("atom:title", ns)
-            published_el = entry.find("atom:published", ns)
-
-            if video_id_el is None or title_el is None:
+        for line in stdout.decode().strip().splitlines():
+            parts = line.split("\t", 1)
+            if len(parts) != 2:
                 continue
-
-            pub_date = None
-            pub_text = published_el.text if published_el is not None else None
-            if pub_text:
-                try:
-                    pub_date = datetime.fromisoformat(pub_text.replace("Z", "+00:00"))
-                except ValueError:
-                    pass
-
-            if pub_date and pub_date < cutoff:
-                continue
-
+            video_id, title = parts
             videos.append({
-                "video_id": video_id_el.text,
-                "title": title_el.text,
-                "published": pub_text,
-                "pub_date": pub_date,
+                "video_id": video_id,
+                "title": title,
+                "published": now_iso,
+                "pub_date": now,
             })
 
         return videos

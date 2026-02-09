@@ -5,10 +5,9 @@ import hashlib
 import json
 import logging
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TypedDict
-from xml.etree import ElementTree
 
 import aiohttp
 import discord
@@ -18,14 +17,12 @@ from bot.services.nanogpt import NanoGPTService
 
 log = logging.getLogger("milo.trump_speech")
 
-# YouTube RSS feeds for channels that cover Trump speeches
+# YouTube channels that cover Trump speeches
 YOUTUBE_CHANNELS = {
     "White House": "UCYxRlFDqcWM4y7FfpiAN3KQ",
     "C-SPAN": "UCb--64Gl51jIEVE-GLDAVTg",
     "Fox News": "UCXIJgqnII2ZOINSWNOGFThA",
 }
-
-YOUTUBE_RSS_URL = "https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
 
 # Keywords to identify Trump speeches
 TITLE_KEYWORDS = [
@@ -256,15 +253,14 @@ class TrumpSpeechWatcher(commands.Cog):
         try:
             all_videos = []
 
-            async with aiohttp.ClientSession() as session:
-                for channel_name, channel_id in YOUTUBE_CHANNELS.items():
-                    try:
-                        videos = await self._fetch_channel_videos(session, channel_id)
-                        for v in videos:
-                            v["source"] = channel_name
-                        all_videos.extend(videos)
-                    except Exception:
-                        log.exception("Failed to fetch videos from %s", channel_name)
+            for channel_name, channel_id in YOUTUBE_CHANNELS.items():
+                try:
+                    videos = await self._fetch_channel_videos(channel_id)
+                    for v in videos:
+                        v["source"] = channel_name
+                    all_videos.extend(videos)
+                except Exception:
+                    log.exception("Failed to fetch videos from %s", channel_name)
 
             # Filter to Trump speeches
             trump_videos = [v for v in all_videos if _is_trump_speech(v["title"], v.get("source", ""))]
@@ -304,41 +300,36 @@ class TrumpSpeechWatcher(commands.Cog):
         except Exception:
             log.exception("Error checking Trump speeches")
 
-    async def _fetch_channel_videos(
-        self, session: aiohttp.ClientSession, channel_id: str
-    ) -> list[dict]:
-        """Fetch recent videos from a YouTube channel via RSS."""
-        url = YOUTUBE_RSS_URL.format(channel_id=channel_id)
-        async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
-            resp.raise_for_status()
-            xml_text = await resp.text()
+    async def _fetch_channel_videos(self, channel_id: str) -> list[dict]:
+        """Fetch recent videos from a YouTube channel via yt-dlp."""
+        proc = await asyncio.create_subprocess_exec(
+            "yt-dlp",
+            "--flat-playlist",
+            "--print", "%(id)s\t%(title)s",
+            "--playlist-end", "15",
+            "--no-warnings",
+            f"https://www.youtube.com/channel/{channel_id}/videos",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
 
-        root = ElementTree.fromstring(xml_text)
-        ns = {"atom": "http://www.w3.org/2005/Atom", "yt": "http://www.youtube.com/xml/schemas/2015"}
+        if proc.returncode != 0:
+            log.error("yt-dlp failed (rc=%d): %s", proc.returncode, stderr.decode()[:200])
+            return []
 
+        now_iso = datetime.now(timezone.utc).isoformat()
         videos = []
-        for entry in root.findall("atom:entry", ns):
-            video_id = entry.find("yt:videoId", ns)
-            title = entry.find("atom:title", ns)
-            published = entry.find("atom:published", ns)
-
-            if video_id is not None and title is not None:
-                pub_date = None
-                if published is not None and published.text:
-                    try:
-                        pub_date = datetime.fromisoformat(published.text.replace("Z", "+00:00"))
-                    except ValueError:
-                        pass
-
-                # Only consider videos from the last 7 days
-                if pub_date and pub_date < datetime.now(pub_date.tzinfo) - timedelta(days=7):
-                    continue
-
-                videos.append({
-                    "video_id": video_id.text,
-                    "title": title.text,
-                    "published": published.text if published is not None else None,
-                })
+        for line in stdout.decode().strip().splitlines():
+            parts = line.split("\t", 1)
+            if len(parts) != 2:
+                continue
+            video_id, title = parts
+            videos.append({
+                "video_id": video_id,
+                "title": title,
+                "published": now_iso,
+            })
 
         return videos
 
