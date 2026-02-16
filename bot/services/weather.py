@@ -76,7 +76,7 @@ class WeatherService:
         hourly: list[HourlyForecast] = []
 
         for entry in data["list"]:
-            dt_utc = datetime.fromisoformat(entry["dt_txt"]).replace(tzinfo=timezone.utc)
+            dt_utc = datetime.fromisoformat(entry["dt_txt"] + "+00:00")
             dt_local = dt_utc.astimezone(EASTERN)
             if dt_local.date() != today_eastern:
                 continue
