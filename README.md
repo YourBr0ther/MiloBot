@@ -57,8 +57,8 @@ Built with [discord.py](https://discordpy.readthedocs.io/) &bull; Deployed with 
 
 ```bash
 # 1. Clone the repo
-git clone <repo-url>
-cd miloBot
+git clone https://github.com/YourBr0ther/MiloBot.git
+cd MiloBot
 
 # 2. Configure environment
 cp .env.example .env
