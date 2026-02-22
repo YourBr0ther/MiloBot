@@ -112,7 +112,6 @@ def build_anniversary_embed(name: str, days_until: int) -> discord.Embed:
 def _get_upcoming_date_text(days_until: int) -> str:
     """Get a formatted date string for an upcoming date."""
     from datetime import timedelta
-    import zoneinfo
 
     eastern = zoneinfo.ZoneInfo("America/New_York")
     target_date = datetime.now(eastern).date() + timedelta(days=days_until)
