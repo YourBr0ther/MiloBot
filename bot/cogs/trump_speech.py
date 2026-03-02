@@ -107,8 +107,7 @@ def _extract_topic(title: str) -> str:
     # Remove channel names, "live", timestamps, etc.
     for remove in ["live:", "live |", "full speech", "full video", "watch:", "| c-span"]:
         lower = lower.replace(remove, "")
-    # Extract key topic words
-    lower = re.sub(r"[^\w\s]", " ", lower)
+    # Extract key topic wordswer = re.sub(r"[^\w\s]", " ", lower)
     words = lower.split()
     # Remove common filler words
     filler = {"the", "a", "an", "in", "on", "at", "to", "for", "of", "and", "or", "trump", "president", "donald"}
